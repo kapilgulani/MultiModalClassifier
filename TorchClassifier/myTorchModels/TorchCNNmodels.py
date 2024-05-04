@@ -92,6 +92,39 @@ def createTorchCNNmodel(name, numclasses, img_shape, pretrained=True):
         #return create_torchvisionmodel(name, numclasses, pretrained)
         return create_torchvisionmodel(name, numclasses, freezeparameters=True, pretrained=pretrained)
 
+##############################################
+
+class CustomMobileNetV3(nn.Module):
+    def __init__(self, original_model):
+        super(CustomMobileNetV3, self).__init__()
+        # MobileNetV3 features except the last classification layer
+        self.features = nn.Sequential(*list(original_model.children())[:-1])
+        self.avgpool = nn.AdaptiveAvgPool2d(1)  
+        self.dropout = nn.Dropout(0.2)
+        self.fc1 = nn.Linear(960, 512)  
+        self.fc2 = nn.Linear(512, 10)  
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.dropout(x)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+def create_customMobileNetV3():
+    # Load the pre-trained MobileNetV3 model
+    original_model = models.mobilenet_v3_large(pretrained=True)
+    # Modify the model with custom layers
+    model = CustomMobileNetV3(original_model)
+    return model
+
+custom_mobilenetv3 = create_customMobileNetV3()
+print(custom_mobilenetv3)
+
+
+
 def create_vggmodel1(numclasses, img_shape):
     # Load the pretrained model from pytorch
     vgg16 = models.vgg16(pretrained=True)
